@@ -1,0 +1,254 @@
+:root {
+  --deep-teal: #195a5f;
+  --care-teal: #12b8b0;
+  --coral: #d97f6c;
+  --warm-white: #f3ede6;
+
+  --bg-card: #ffffff;
+  --text-main: #2d3748;
+  --text-muted: #718096;
+  --border-color: #e2e8f0;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background-color: var(--warm-white);
+  color: var(--text-main);
+  line-height: 1.6;
+}
+
+.topnav {
+  background-color: var(--deep-teal);
+  color: #ffffff;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 6px rgba(25, 90, 95, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.topnav strong {
+  color: var(--care-teal);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.topnav .links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.topnav a {
+  color: var(--warm-white);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: color 0.2s ease;
+}
+
+.topnav a:hover {
+  color: var(--care-teal);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  background-color: var(--bg-card);
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+  border-top: 4px solid var(--care-teal);
+}
+
+.card h3 {
+  color: var(--deep-teal);
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--deep-teal);
+  margin-bottom: -0.5rem;
+}
+
+input,
+select {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  background-color: #f8fafc;
+  color: var(--text-main);
+  transition: all 0.2s;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--care-teal);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(18, 184, 176, 0.15);
+}
+
+.btn {
+  background-color: var(--care-teal);
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn:hover {
+  background-color: #0e9993;
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn.danger {
+  background-color: var(--coral);
+}
+
+.btn.danger:hover {
+  background-color: #c56e5d;
+}
+
+.btn.small {
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+th,
+td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+th {
+  background-color: rgba(243, 237, 230, 0.5); /* Warm White transparan */
+  color: var(--deep-teal);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+td {
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+
+tr:hover td {
+  background-color: #f8fafc;
+}
+
+.alert {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: none;
+}
+
+.alert:not(:empty) {
+  display: block;
+}
+
+.alert.success {
+  background-color: rgba(18, 184, 176, 0.1);
+  color: var(--deep-teal);
+  border: 1px solid var(--care-teal);
+}
+
+.alert.error {
+  background-color: rgba(217, 127, 108, 0.1);
+  color: #b23a25;
+  border: 1px solid var(--coral);
+}
+
+/* --- Responsif --- */
+@media (max-width: 768px) {
+  .topnav {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .topnav .links {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .card {
+    padding: 1.25rem;
+  }
+
+  th,
+  td {
+    padding: 0.75rem;
+  }
+}
