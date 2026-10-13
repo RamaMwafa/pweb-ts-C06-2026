@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masuk - Antrian Rumah Sakit</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-card">
+            <h1 class="login-title">Masuk</h1>
+            <p class="login-subtitle">Halaman ini untuk mengakses Dashboard Admin dan Panel Operator. Layar Kiosk tidak memerlukan login.</p>
+
+            <!-- Wadah Pesan Error Visual -->
+            <div id="error-container" class="error-box" style="display: none;"></div>
+
+            <!-- Form Login -->
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="emilys atau averyp" required autocomplete="username">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+
+                <button type="submit" id="submit-btn" class="btn-submit">Masuk</button>
+            </form>
+
+            <p class="login-helper">Gunakan akun uji dari dummyjson.com/users (contoh username/password tercantum di sana).</p>
+
+            <!-- Tombol Cepat Pengujian Akun DummyJSON -->
+            <div class="quick-accounts">
+                <span class="quick-title">Akun Uji Cepat (Klik untuk Mengisi):</span>
+                <div class="quick-buttons">
+                    <button type="button" class="btn-chip" id="btn-fill-operator">
+                        👤 <strong>Operator (User):</strong> averyp / averyppass
+                    </button>
+                    <button type="button" class="btn-chip" id="btn-fill-admin">
+                        🔑 <strong>Admin:</strong> emilys / emilyspass
+                    </button>
+                </div>
+            </div>
+
+            <div class="login-footer-links">
+                <a href="operator.html" class="direct-link">Menuju Panel Operator &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="dist/login.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+/*
+ * operator.css telah disatukan ke style.css sesuai spesifikasi.
+ * File ini mengimpor style.css agar kompatibilitas tetap terjaga.
+ */
+@import url('style.css');
