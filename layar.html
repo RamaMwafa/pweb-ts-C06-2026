@@ -1,0 +1,152 @@
+
+  <!DOCTYPE html>
+  <html lang="id">
+  <head>
+    <meta charset="UTF-8">
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Layar Antrean | Rumah Sakit</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Hamburger menu, navigasi, dan fullscreen -->
+    <script type="module" src="dist/menu.js" defer></script>
+
+    <!-- Data layar antrean -->
+    <script type="module" src="dist/layar.js" defer></script>
+
+    <!-- Pengambilan tiket -->
+    <script type="module" src="dist/ambil-antrian.js" defer></script>
+  </head>
+
+  <body>
+    <main class="qa-shell">
+
+      <!-- Header atas -->
+      <header class="qa-topbar">
+
+        <!-- Tombol back -->
+        <button type="button" class="qa-back" data-view="layar">
+          ← Kembali
+        </button>
+
+        <!-- Judul -->
+        <div class="qa-title">
+          <h1>Nomor sedang dipanggil</h1>
+
+          <p id="waktu-update">
+            Memuat...
+          </p>
+        </div>
+
+        <!-- Navigasi -->
+
+        <nav class="qa-nav" aria-label="Navigasi antrean">
+          <button
+            type="button"
+            class="qa-nav-active"
+            data-view="layar">
+            Layar Antrean
+          </button>
+
+          <button
+            type="button"
+            data-view="ambil">
+            Ambil Nomor
+          </button>
+
+          <button type="button" data-fullscreen>
+            Layar Penuh
+          </button>
+        </nav>
+
+
+        <!-- HAMBURGER MENU -->
+        <div class="qa-menu-wrapper">
+
+          <button
+            id="menu-toggle"
+            class="qa-menu-toggle"
+            type="button"
+            aria-label="Buka menu navigasi"
+            aria-expanded="false"
+            aria-controls="menu-dropdown">
+            &#9776;
+          </button>
+
+          <nav
+            id="menu-dropdown"
+            class="qa-menu-dropdown"
+            aria-label="Menu utama"
+            hidden>
+
+            <a href="index.html">
+              Dashboard Admin
+            </a>
+
+            <a href="operator.html">
+              Panel Operator
+            </a>
+
+            <a href="layar.html">
+              Layar Antrean
+            </a>
+
+            <a href="ambil-antrian.html">
+              Ambil Nomor
+            </a>
+
+            <a href="login.html">
+              Login
+            </a>
+
+          </nav>
+
+        </div>
+
+      </header>
+
+      <!-- KARTU NOMOR ANTREAN -->
+
+      <!-- TAMPILAN LAYAR ANTREAN -->
+      <section id="view-layar" aria-label="Nomor antrean aktif">
+        <div class="qa-grid" id="kartu-layar"></div>
+      </section>
+
+      <!-- TAMPILAN AMBIL NOMOR -->
+      <section
+        id="view-ambil"
+        aria-label="Pengambilan nomor antrean"
+        hidden>
+
+        <div class="qa-grid" id="kartu-ambil"></div>
+
+        <p class="qa-footnote">
+          Pilih layanan dan prioritas untuk mengambil nomor.
+        </p>
+      </section>
+
+      <!-- POPUP HASIL TIKET -->
+      <div class="qa-result-backdrop" id="hasil-tiket" hidden>
+        <section class="qa-result" role="dialog" aria-modal="true">
+          <h2>Nomor Antrean Anda</h2>
+          <strong id="hasil-nomor">—</strong>
+          <p id="hasil-rincian"></p>
+          <p>Silakan menunggu hingga nomor dipanggil.</p>
+          <button
+            type="button"
+            class="qa-button-primary"
+            id="tutup-hasil">
+            Tutup
+          </button>
+        </section>
+      </div>
+
+
+    </main>
+  </body>
+  </html>
