@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Admin - Antrian RS</title>
+    <link rel="stylesheet" href="style_index.css" />
+    <script src="dist/common.js" defer></script>
+    <script src="dist/admin.js" defer></script>
+  </head>
+  <body>
+    <nav class="topnav">
+      <div><strong>Dashboard Admin</strong> • <span id="navUser"></span> (<span id="navRole"></span>)</div>
+      <div class="links">
+        <a href="operator.html">Operator</a>
+        <a href="layar.html">Layar</a>
+        <a href="ambil-antrian.html">Ambil Antrian</a>
+        <button class="btn small danger" id="logoutBtn">Logout</button>
+      </div>
+    </nav>
+    <div class="container">
+      <div class="grid2">
+        <section class="card">
+          <h3>Tambah Jenis Antrian</h3>
+          <form id="typeForm">
+            <label for="typeCode">Kode (1 huruf kapital)</label>
+            <input id="typeCode" maxlength="1" placeholder="C" />
+            <label for="typeName">Nama Layanan</label>
+            <input id="typeName" placeholder="Poli Anak" />
+            <button class="btn" type="submit">Tambah</button>
+          </form>
+          <div class="alert" id="typeMsg"></div>
+        </section>
+        <section class="card">
+          <h3>Terbitkan Tiket Manual</h3>
+          <form id="ticketForm">
+            <label for="ticketType">Jenis Antrian (aktif)</label>
+            <select id="ticketType"></select>
+            <label for="ticketPriority">Prioritas</label>
+            <select id="ticketPriority">
+              <option>Normal</option>
+              <option>Lansia</option>
+              <option>Disabilitas</option>
+              <option>VIP</option>
+              <option>Ibu Hamil</option>
+              <option>Bayi & Balita</option>
+            </select>
+            <button class="btn" type="submit">Buat Tiket</button>
+          </form>
+          <div class="alert" id="ticketMsg"></div>
+        </section>
+      </div>
+
+      <section class="card">
+        <h3>Daftar Jenis Antrian</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Kode</th>
+              <th>Nama</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="typeBody"></tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h3>Tiket Terakhir <span class="muted" id="ticketInfo"></span></h3>
+        <button class="btn danger" id="resetBtn">Reset Antrian</button>
+        <table>
+          <thead>
+            <tr>
+              <th>Nomor</th>
+              <th>Jenis • Prioritas</th>
+              <th>Status</th>
+              <th>Waktu</th>
+            </tr>
+          </thead>
+          <tbody id="ticketBody"></tbody>
+        </table>
+      </section>
+    </div>
+  </body>
+</html>

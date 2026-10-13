@@ -1,440 +1,326 @@
 "use strict";
+/// <reference path="./common.ts" />
 // ==========================================================================
 // OPERATOR.TS - Halaman Panel Operator Antrian Rumah Sakit
 // ==========================================================================
-// 1. Auth Guard (Proteksi Halaman)
-const authToken = localStorage.getItem('token');
-if (!authToken) {
-    window.location.href = 'login.html';
-}
-// Elemen DOM
-const panelContainer = document.getElementById('panel');
-const usernameSpan = document.getElementById('username');
-const roleBadge = document.getElementById('role-badge');
-const logoutButton = document.getElementById('logout');
-const btnSoundToggle = document.getElementById('btn-sound-toggle');
-const btnResetData = document.getElementById('btn-reset-data');
-const toastElement = document.getElementById('toast');
-// Elemen Modal Tambah Tiket
-const btnOpenModal = document.getElementById('btn-open-modal');
-const ticketModal = document.getElementById('ticket-modal');
-const modalCloseBtn = document.getElementById('modal-close');
-const modalCancelBtn = document.getElementById('modal-cancel');
-const formNewTicket = document.getElementById('form-new-ticket');
-const selectQueueType = document.getElementById('select-queue-type');
-const selectPriority = document.getElementById('select-priority');
-// Pengaturan Suara Panggilan (Web Speech API)
-let soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
-updateSoundButton();
-if (btnSoundToggle) {
-    btnSoundToggle.addEventListener('click', () => {
-        soundEnabled = !soundEnabled;
-        localStorage.setItem('soundEnabled', soundEnabled ? 'true' : 'false');
-        updateSoundButton();
-        showToast(soundEnabled ? 'Suara panggilan diaktifkan' : 'Suara panggilan dinonaktifkan');
-    });
-}
-function updateSoundButton() {
-    if (!btnSoundToggle)
+document.addEventListener("DOMContentLoaded", function () {
+    // 1. Auth Guard (Proteksi Halaman)
+    const session = requireLogin();
+    if (!session)
         return;
-    if (soundEnabled) {
-        btnSoundToggle.textContent = '🔊 Suara: Aktif';
-        btnSoundToggle.classList.remove('sound-off');
+    // Elemen DOM
+    const panelContainer = el("panel");
+    const usernameSpan = el("username");
+    const roleBadge = el("role-badge");
+    const logoutButton = el("logout");
+    const btnSoundToggle = el("btn-sound-toggle");
+    const btnResetData = el("btn-reset-data");
+    const toastElement = el("toast");
+    // Modal Tambah Tiket
+    const btnOpenModal = el("btn-open-modal");
+    const ticketModal = el("ticket-modal");
+    const modalCloseBtn = el("modal-close");
+    const modalCancelBtn = el("modal-cancel");
+    const formNewTicket = el("form-new-ticket");
+    const selectQueueType = el("select-queue-type");
+    const selectPriority = el("select-priority");
+    // Tampilkan Pengguna Aktif
+    if (usernameSpan) {
+        usernameSpan.textContent = session.firstName || session.username || "Operator";
     }
-    else {
-        btnSoundToggle.textContent = '🔇 Suara: Mati';
-        btnSoundToggle.classList.add('sound-off');
+    if (roleBadge) {
+        roleBadge.textContent = (session.role || "OPERATOR").toUpperCase();
     }
-}
-// Tampilkan Identitas Pengguna Aktif
-if (usernameSpan) {
-    usernameSpan.textContent = localStorage.getItem('firstName') || 'Petugas Operator';
-}
-if (roleBadge) {
-    const role = (localStorage.getItem('role') || 'operator').toUpperCase();
-    roleBadge.textContent = role;
-}
-// Tombol Logout: Menghapus Sesi Otentikasi dan Redirect ke login.html
-if (logoutButton) {
-    logoutButton.addEventListener('click', () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('firstName');
-        localStorage.removeItem('role');
-        window.location.href = 'login.html';
-    });
-}
-// Data Awal Master Jenis Antrian (Sesuai Modul Praktikum)
-const DEFAULT_QUEUE_TYPES = [
-    { code: 'A', name: 'UMUM-1', active: true },
-    { code: 'B', name: 'UMUM-2', active: true },
-    { code: 'C', name: 'UMUM-3', active: true },
-    { code: 'G', name: 'GIGI', active: true },
-    { code: 'F', name: 'FARMASI', active: true },
-    { code: 'P', name: 'PSIKOLOG', active: true },
-];
-// Data Awal Tiket (Meniru Tampilan Persis Screenshot Soal Halaman 5)
-function getDefaultTickets() {
-    const now = Date.now();
-    return [
-        // UMUM-1 (A): Sedang Dipanggil A-001, Berikutnya -, 0 menunggu
-        { id: 't-a-1', number: 'A-001', queueTypeCode: 'A', priority: 'Normal', status: 'Dipanggil', createdAt: now - 500000 },
-        // UMUM-2 (B): Sedang Dipanggil -, Berikutnya B-003 (Prioritas Disabilitas), 4 menunggu
-        { id: 't-b-1', number: 'B-001', queueTypeCode: 'B', priority: 'Normal', status: 'Selesai', createdAt: now - 600000 },
-        { id: 't-b-2', number: 'B-002', queueTypeCode: 'B', priority: 'Normal', status: 'Selesai', createdAt: now - 550000 },
-        { id: 't-b-3', number: 'B-003', queueTypeCode: 'B', priority: 'Disabilitas', status: 'Menunggu', createdAt: now - 400000 },
-        { id: 't-b-4', number: 'B-004', queueTypeCode: 'B', priority: 'Disabilitas', status: 'Menunggu', createdAt: now - 350000 },
-        { id: 't-b-5', number: 'B-002', queueTypeCode: 'B', priority: 'Normal', status: 'Menunggu', createdAt: now - 300000 },
-        { id: 't-b-6', number: 'B-001', queueTypeCode: 'B', priority: 'Normal', status: 'Menunggu', createdAt: now - 250000 },
-        // UMUM-3 (C): Sedang Dipanggil -, Berikutnya C-001 (Prioritas Normal), 1 menunggu
-        { id: 't-c-1', number: 'C-001', queueTypeCode: 'C', priority: 'Normal', status: 'Menunggu', createdAt: now - 200000 },
-        // GIGI (G): Sedang Dipanggil G-003 (Lansia), Berikutnya G-001 (Prioritas Normal), 2 menunggu
-        { id: 't-g-3', number: 'G-003', queueTypeCode: 'G', priority: 'Lansia', status: 'Dipanggil', createdAt: now - 400000 },
-        { id: 't-g-1', number: 'G-001', queueTypeCode: 'G', priority: 'Normal', status: 'Menunggu', createdAt: now - 300000 },
-        { id: 't-g-2', number: 'G-002', queueTypeCode: 'G', priority: 'Normal', status: 'Menunggu', createdAt: now - 200000 },
-        // FARMASI (F): Sedang Dipanggil F-001, Berikutnya -, 0 menunggu
-        { id: 't-f-1', number: 'F-001', queueTypeCode: 'F', priority: 'Normal', status: 'Dipanggil', createdAt: now - 300000 },
-        // PSIKOLOG (P): Sedang Dipanggil -, Berikutnya P-001 (Prioritas Normal), 3 menunggu
-        { id: 't-p-1', number: 'P-001', queueTypeCode: 'P', priority: 'Normal', status: 'Menunggu', createdAt: now - 300000 },
-        { id: 't-p-2', number: 'P-002', queueTypeCode: 'P', priority: 'Normal', status: 'Menunggu', createdAt: now - 200000 },
-        { id: 't-p-3', number: 'P-003', queueTypeCode: 'P', priority: 'Normal', status: 'Menunggu', createdAt: now - 100000 },
-    ];
-}
-// Fungsi Pengambilan & Penyimpanan Data Local Storage
-function getQueueTypes() {
-    const raw = localStorage.getItem('queueTypes') || localStorage.getItem('jenisAntrian');
-    if (!raw) {
-        localStorage.setItem('queueTypes', JSON.stringify(DEFAULT_QUEUE_TYPES));
-        localStorage.setItem('jenisAntrian', JSON.stringify(DEFAULT_QUEUE_TYPES));
-        return DEFAULT_QUEUE_TYPES;
+    // Tombol Logout
+    if (logoutButton) {
+        logoutButton.addEventListener("click", logout);
     }
-    try {
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_QUEUE_TYPES;
-    }
-    catch {
-        return DEFAULT_QUEUE_TYPES;
-    }
-}
-function getTickets() {
-    const raw = localStorage.getItem('tickets') || localStorage.getItem('antrian');
-    if (!raw) {
-        const initial = getDefaultTickets();
-        saveTickets(initial);
-        return initial;
-    }
-    try {
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-    }
-    catch {
-        return [];
-    }
-}
-function saveTickets(tickets) {
-    localStorage.setItem('tickets', JSON.stringify(tickets));
-    localStorage.setItem('antrian', JSON.stringify(tickets));
-}
-// Hirarki Prioritas: VIP/Disabilitas/Lansia lebih didahulukan daripada Normal
-const PRIORITY_ORDER = {
-    'VIP': 1,
-    'Disabilitas': 2,
-    'Lansia': 3,
-    'Normal': 4,
-};
-function sortWaitingTickets(tickets) {
-    return [...tickets].sort((a, b) => {
-        const rankA = PRIORITY_ORDER[a.priority] || 99;
-        const rankB = PRIORITY_ORDER[b.priority] || 99;
-        if (rankA !== rankB) {
-            return rankA - rankB; // Nilai rank terkecil memiliki prioritas tertinggi
-        }
-        // Jika prioritas sama, urutkan berdasarkan waktu kedatangan (FIFO)
-        return (a.createdAt || 0) - (b.createdAt || 0);
-    });
-}
-// Fungsi Suara Panggilan (Web Speech API)
-function speakCall(ticketNumber, queueName) {
-    if (!soundEnabled || !('speechSynthesis' in window))
-        return;
-    try {
-        window.speechSynthesis.cancel();
-        const readableNumber = ticketNumber.replace('-', ' ');
-        const text = `Nomor antrian ${readableNumber}, silakan menuju ke ${queueName}`;
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'id-ID';
-        utterance.rate = 0.95;
-        // Pilih suara bahasa Indonesia jika didukung sistem
-        const voices = window.speechSynthesis.getVoices();
-        const indonesianVoice = voices.find(v => v.lang.toLowerCase().includes('id'));
-        if (indonesianVoice) {
-            utterance.voice = indonesianVoice;
-        }
-        window.speechSynthesis.speak(utterance);
-    }
-    catch (e) {
-        console.warn('Speech synthesis error:', e);
-    }
-}
-function showToast(message) {
-    if (!toastElement)
-        return;
-    toastElement.textContent = message;
-    toastElement.style.display = 'block';
-    setTimeout(() => {
-        toastElement.style.display = 'none';
-    }, 2800);
-}
-// Render Kartu Antrian
-function renderCards() {
-    const queueTypes = getQueueTypes();
-    const tickets = getTickets();
-    if (!panelContainer)
-        return;
-    panelContainer.innerHTML = '';
-    // Filter hanya jenis antrian aktif (jika ada flag active)
-    const activeQueues = queueTypes.filter(q => q.active !== false);
-    activeQueues.forEach((queue) => {
-        // Ambil tiket yang cocok dengan kode antrian ini
-        const queueTickets = tickets.filter(t => {
-            if (t.queueTypeCode)
-                return t.queueTypeCode.toUpperCase() === queue.code.toUpperCase();
-            if (t.number)
-                return t.number.toUpperCase().startsWith(queue.code.toUpperCase() + '-');
-            return false;
+    // Suara Panggilan (Web Speech API)
+    let soundEnabled = localStorage.getItem("soundEnabled") !== "false";
+    updateSoundButton();
+    if (btnSoundToggle) {
+        btnSoundToggle.addEventListener("click", () => {
+            soundEnabled = !soundEnabled;
+            localStorage.setItem("soundEnabled", soundEnabled ? "true" : "false");
+            updateSoundButton();
+            showToast(soundEnabled ? "Suara panggilan diaktifkan" : "Suara panggilan dinonaktifkan");
         });
-        // Tiket yang sedang dipanggil saat ini
-        const currentCalledTicket = queueTickets.find(t => t.status === 'Dipanggil');
-        // Tiket yang masih menunggu, diurutkan berdasarkan aturan prioritas
-        const rawWaiting = queueTickets.filter(t => t.status === 'Menunggu');
-        const sortedWaiting = sortWaitingTickets(rawWaiting);
-        const nextTicket = sortedWaiting.length > 0 ? sortedWaiting[0] : null;
-        const waitingCount = sortedWaiting.length;
-        // Buat elemen Card
-        const card = document.createElement('div');
-        card.className = 'operator-card';
-        card.dataset.queueCode = queue.code;
-        // Header Kartu
-        const header = document.createElement('div');
-        header.className = 'card-header';
-        header.innerHTML = `
-            <div class="card-title-group">
-                <span class="queue-name">${queue.name}</span>
-                <span class="queue-code-badge">${queue.code}</span>
-            </div>
-            <span class="waiting-badge">${waitingCount} menunggu</span>
-        `;
-        // Body Kartu (Dua Kolom: Sedang Dipanggil & Berikutnya)
-        const body = document.createElement('div');
-        body.className = 'card-body';
-        const calledNumberStr = currentCalledTicket ? currentCalledTicket.number : '-';
-        const calledPriorityStr = currentCalledTicket ? `Prioritas ${currentCalledTicket.priority}` : '';
-        const calledClass = currentCalledTicket ? 'ticket-number-called' : 'ticket-number-called empty';
-        const nextNumberStr = nextTicket ? nextTicket.number : '-';
-        const nextPriorityStr = nextTicket ? `Prioritas ${nextTicket.priority}` : '';
-        const nextClass = nextTicket ? 'ticket-number-next' : 'ticket-number-next empty';
-        let priorityBadgeClass = 'priority-tag';
-        if (nextTicket) {
-            priorityBadgeClass += ` priority-${nextTicket.priority.toLowerCase()}`;
+    }
+    function updateSoundButton() {
+        if (!btnSoundToggle)
+            return;
+        if (soundEnabled) {
+            btnSoundToggle.textContent = "🔊 Suara: Aktif";
+            btnSoundToggle.classList.remove("sound-off");
         }
-        body.innerHTML = `
-            <div class="info-column">
-                <div class="column-label">SEDANG DIPANGGIL</div>
-                <div class="${calledClass}">${calledNumberStr}</div>
-                ${calledPriorityStr ? `<div class="priority-tag">${calledPriorityStr}</div>` : ''}
-            </div>
-            <div class="info-column">
-                <div class="column-label">BERIKUTNYA</div>
-                <div class="${nextClass}">${nextNumberStr}</div>
-                ${nextPriorityStr ? `<div class="${priorityBadgeClass}">${nextPriorityStr}</div>` : ''}
-            </div>
-        `;
-        // Tombol Aksi
-        const actions = document.createElement('div');
-        actions.className = 'card-actions';
-        const hasNext = nextTicket !== null;
-        const hasCurrent = currentCalledTicket !== undefined;
-        actions.innerHTML = `
-            <button class="btn-action btn-panggil" ${!hasNext ? 'disabled' : ''} title="Panggil tiket berikutnya">
-                Panggil Berikutnya
-            </button>
-            <button class="btn-action btn-lewati" ${(!hasCurrent && !hasNext) ? 'disabled' : ''} title="Lewati antrian saat ini">
-                Lewati
-            </button>
-            <button class="btn-action btn-selesai" ${!hasCurrent ? 'disabled' : ''} title="Selesaikan tiket yang sedang dipanggil">
-                Selesai
-            </button>
-        `;
-        // Catatan ketika tidak ada antrian menunggu
-        const footerNotice = document.createElement('div');
-        footerNotice.className = 'empty-notice';
-        if (waitingCount === 0) {
-            footerNotice.textContent = 'Tidak ada tiket menunggu untuk jenis antrian ini.';
+        else {
+            btnSoundToggle.textContent = "🔇 Suara: Mati";
+            btnSoundToggle.classList.add("sound-off");
         }
-        // Event Listener untuk Tombol Panggil Berikutnya
-        const btnPanggil = actions.querySelector('.btn-panggil');
-        btnPanggil.addEventListener('click', () => {
-            panggilBerikutnya(queue.code, queue.name);
+    }
+    function speakCall(ticketNumber, queueName) {
+        if (!soundEnabled || !("speechSynthesis" in window))
+            return;
+        try {
+            window.speechSynthesis.cancel();
+            const readable = ticketNumber.replace("-", " ");
+            const text = "Nomor antrian " + readable + ", silakan menuju ke " + queueName;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = "id-ID";
+            utterance.rate = 0.95;
+            const voices = window.speechSynthesis.getVoices();
+            const idVoice = voices.find(v => v.lang.toLowerCase().includes("id"));
+            if (idVoice)
+                utterance.voice = idVoice;
+            window.speechSynthesis.speak(utterance);
+        }
+        catch (e) {
+            console.warn("Speech synthesis error:", e);
+        }
+    }
+    function showToast(msg) {
+        if (!toastElement)
+            return;
+        toastElement.textContent = msg;
+        toastElement.style.display = "block";
+        setTimeout(() => {
+            toastElement.style.display = "none";
+        }, 2800);
+    }
+    // Pastikan jenis antrian lengkap sesuai standar Modul (UMUM-1 s/d PSIKOLOG)
+    function ensureModuleTypes() {
+        let types = getTypes();
+        if (types.length <= 2) {
+            const defaults = [
+                { code: "A", name: "UMUM-1", active: true },
+                { code: "B", name: "UMUM-2", active: true },
+                { code: "C", name: "UMUM-3", active: true },
+                { code: "G", name: "GIGI", active: true },
+                { code: "F", name: "FARMASI", active: true },
+                { code: "P", name: "PSIKOLOG", active: true },
+            ];
+            saveTypes(defaults);
+            types = defaults;
+        }
+        return types;
+    }
+    // Dataset awal modul (Screenshot Halaman 5)
+    function seedModuleDemoTickets() {
+        resetQueue();
+        const now = Date.now();
+        const demo = [
+            // UMUM-1 (A): Sedang Dipanggil A-001, Berikutnya -, 0 menunggu
+            { id: "t-a-1", number: "A-001", typeCode: "A", priority: "Normal", status: "called", seq: 1, createdAt: now - 500000 },
+            // UMUM-2 (B): Sedang Dipanggil -, Berikutnya B-003 (Prioritas Disabilitas), 4 menunggu
+            { id: "t-b-1", number: "B-001", typeCode: "B", priority: "Normal", status: "done", seq: 2, createdAt: now - 600000 },
+            { id: "t-b-2", number: "B-002", typeCode: "B", priority: "Normal", status: "done", seq: 3, createdAt: now - 550000 },
+            { id: "t-b-3", number: "B-003", typeCode: "B", priority: "Disabilitas", status: "waiting", seq: 4, createdAt: now - 400000 },
+            { id: "t-b-4", number: "B-004", typeCode: "B", priority: "Disabilitas", status: "waiting", seq: 5, createdAt: now - 350000 },
+            { id: "t-b-5", number: "B-002", typeCode: "B", priority: "Normal", status: "waiting", seq: 6, createdAt: now - 300000 },
+            { id: "t-b-6", number: "B-001", typeCode: "B", priority: "Normal", status: "waiting", seq: 7, createdAt: now - 250000 },
+            // UMUM-3 (C): Sedang Dipanggil -, Berikutnya C-001 (Prioritas Normal), 1 menunggu
+            { id: "t-c-1", number: "C-001", typeCode: "C", priority: "Normal", status: "waiting", seq: 8, createdAt: now - 200000 },
+            // GIGI (G): Sedang Dipanggil G-003 (Lansia), Berikutnya G-001 (Prioritas Normal), 2 menunggu
+            { id: "t-g-3", number: "G-003", typeCode: "G", priority: "Lansia", status: "called", seq: 9, createdAt: now - 400000 },
+            { id: "t-g-1", number: "G-001", typeCode: "G", priority: "Normal", status: "waiting", seq: 10, createdAt: now - 300000 },
+            { id: "t-g-2", number: "G-002", typeCode: "G", priority: "Normal", status: "waiting", seq: 11, createdAt: now - 200000 },
+            // FARMASI (F): Sedang Dipanggil F-001, Berikutnya -, 0 menunggu
+            { id: "t-f-1", number: "F-001", typeCode: "F", priority: "Normal", status: "called", seq: 12, createdAt: now - 300000 },
+            // PSIKOLOG (P): Sedang Dipanggil -, Berikutnya P-001 (Prioritas Normal), 3 menunggu
+            { id: "t-p-1", number: "P-001", typeCode: "P", priority: "Normal", status: "waiting", seq: 13, createdAt: now - 300000 },
+            { id: "t-p-2", number: "P-002", typeCode: "P", priority: "Normal", status: "waiting", seq: 14, createdAt: now - 200000 },
+            { id: "t-p-3", number: "P-003", typeCode: "P", priority: "Normal", status: "waiting", seq: 15, createdAt: now - 100000 },
+        ];
+        saveTickets(demo);
+    }
+    // Inisialisasi awal tiket jika belum ada
+    if (getTickets().length === 0) {
+        seedModuleDemoTickets();
+    }
+    // Render Kartu Antrian
+    function renderCards() {
+        const types = ensureModuleTypes().filter(t => t.active);
+        const allTickets = getTickets();
+        if (!panelContainer)
+            return;
+        panelContainer.innerHTML = "";
+        types.forEach(q => {
+            const queueTickets = allTickets.filter(t => t.typeCode === q.code);
+            const calledTicket = queueTickets.find(t => t.status === "called");
+            const waitingTickets = waitingSorted(queueTickets.filter(t => t.status === "waiting"));
+            const nextTicket = waitingTickets.length > 0 ? waitingTickets[0] : null;
+            const waitingCount = waitingTickets.length;
+            const card = document.createElement("div");
+            card.className = "operator-card";
+            const calledNum = calledTicket ? calledTicket.number : "-";
+            const calledClass = calledTicket ? "ticket-number-called" : "ticket-number-called empty";
+            const calledPrio = calledTicket ? "Prioritas " + calledTicket.priority : "";
+            const nextNum = nextTicket ? nextTicket.number : "-";
+            const nextClass = nextTicket ? "ticket-number-next" : "ticket-number-next empty";
+            const nextPrio = nextTicket ? "Prioritas " + nextTicket.priority : "";
+            const nextPrioClass = nextTicket ? "priority-tag priority-" + nextTicket.priority.toLowerCase() : "priority-tag";
+            card.innerHTML = `
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <span class="queue-name">${esc(q.name)}</span>
+                        <span class="queue-code-badge">${esc(q.code)}</span>
+                    </div>
+                    <span class="waiting-badge">${waitingCount} menunggu</span>
+                </div>
+                <div class="card-body">
+                    <div class="info-column">
+                        <div class="column-label">SEDANG DIPANGGIL</div>
+                        <div class="${calledClass}">${esc(calledNum)}</div>
+                        ${calledPrio ? `<div class="priority-tag">${esc(calledPrio)}</div>` : ""}
+                    </div>
+                    <div class="info-column">
+                        <div class="column-label">BERIKUTNYA</div>
+                        <div class="${nextClass}">${esc(nextNum)}</div>
+                        ${nextPrio ? `<div class="${nextPrioClass}">${esc(nextPrio)}</div>` : ""}
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <button class="btn-action btn-panggil" ${!nextTicket ? "disabled" : ""}>
+                        Panggil Berikutnya
+                    </button>
+                    <button class="btn-action btn-lewati" ${(!calledTicket && !nextTicket) ? "disabled" : ""}>
+                        Lewati
+                    </button>
+                    <button class="btn-action btn-selesai" ${!calledTicket ? "disabled" : ""}>
+                        Selesai
+                    </button>
+                </div>
+                <div class="empty-notice">
+                    ${waitingCount === 0 ? "Tidak ada tiket menunggu untuk jenis antrian ini." : ""}
+                </div>
+            `;
+            // Pasang Event Listeners
+            const btnPanggil = card.querySelector(".btn-panggil");
+            btnPanggil.addEventListener("click", () => panggilBerikutnya(q.code, q.name));
+            const btnLewati = card.querySelector(".btn-lewati");
+            btnLewati.addEventListener("click", () => lewatiTiket(q.code));
+            const btnSelesai = card.querySelector(".btn-selesai");
+            btnSelesai.addEventListener("click", () => selesaikanTiket(q.code));
+            panelContainer.appendChild(card);
         });
-        // Event Listener untuk Tombol Lewati
-        const btnLewati = actions.querySelector('.btn-lewati');
-        btnLewati.addEventListener('click', () => {
-            lewatiTiket(queue.code);
+    }
+    // 1. Tombol Panggil Berikutnya
+    function panggilBerikutnya(code, name) {
+        const all = getTickets();
+        // Ubah tiket aktif sebelumnya menjadi Selesai (done)
+        all.forEach(t => {
+            if (t.typeCode === code && t.status === "called") {
+                t.status = "done";
+            }
         });
-        // Event Listener untuk Tombol Selesai
-        const btnSelesai = actions.querySelector('.btn-selesai');
-        btnSelesai.addEventListener('click', () => {
-            selesaikanTiket(queue.code);
-        });
-        card.appendChild(header);
-        card.appendChild(body);
-        card.appendChild(actions);
-        card.appendChild(footerNotice);
-        panelContainer.appendChild(card);
-    });
-}
-// 1. Logika Tombol "Panggil Berikutnya"
-// Mengubah tiket aktif sebelumnya menjadi Selesai (Done) dan memanggil tiket antrian berikutnya
-function panggilBerikutnya(queueCode, queueName) {
-    const tickets = getTickets();
-    // Selesaikan tiket yang saat ini sedang dipanggil pada jenis antrian ini
-    const currentlyCalled = tickets.find(t => (t.queueTypeCode === queueCode || t.number.startsWith(queueCode + '-')) &&
-        t.status === 'Dipanggil');
-    if (currentlyCalled) {
-        currentlyCalled.status = 'Selesai';
-        currentlyCalled.completedAt = Date.now();
-    }
-    // Ambil antrian berikutnya yang berstatus Menunggu dengan urutan prioritas
-    const waitingTickets = tickets.filter(t => (t.queueTypeCode === queueCode || t.number.startsWith(queueCode + '-')) &&
-        t.status === 'Menunggu');
-    const sortedWaiting = sortWaitingTickets(waitingTickets);
-    if (sortedWaiting.length > 0) {
-        const nextTicket = sortedWaiting[0];
-        nextTicket.status = 'Dipanggil';
-        nextTicket.calledAt = Date.now();
-        saveTickets(tickets);
-        renderCards();
-        speakCall(nextTicket.number, queueName);
-        showToast(`Memanggil nomor ${nextTicket.number} (${nextTicket.priority}) ke ${queueName}`);
-    }
-    else {
-        saveTickets(tickets);
-        renderCards();
-        showToast(`Tidak ada tiket menunggu untuk ${queueName}`);
-    }
-}
-// 2. Logika Tombol "Lewati"
-// Memindahkan tiket yang tidak hadir ke akhir antrian atau menandainya sebagai Dilewati
-function lewatiTiket(queueCode) {
-    const tickets = getTickets();
-    // Jika ada tiket yang sedang dipanggil tetapi pengunjung tidak hadir
-    const currentlyCalled = tickets.find(t => (t.queueTypeCode === queueCode || t.number.startsWith(queueCode + '-')) &&
-        t.status === 'Dipanggil');
-    if (currentlyCalled) {
-        currentlyCalled.status = 'Dilewati';
-        saveTickets(tickets);
-        renderCards();
-        showToast(`Nomor ${currentlyCalled.number} ditandai sebagai Dilewati`);
-        return;
-    }
-    // Jika tidak ada tiket dipanggil, lewati tiket terdepan di antrian menunggu
-    const waitingTickets = tickets.filter(t => (t.queueTypeCode === queueCode || t.number.startsWith(queueCode + '-')) &&
-        t.status === 'Menunggu');
-    const sortedWaiting = sortWaitingTickets(waitingTickets);
-    if (sortedWaiting.length > 0) {
-        const next = sortedWaiting[0];
-        next.status = 'Dilewati';
-        saveTickets(tickets);
-        renderCards();
-        showToast(`Nomor ${next.number} ditandai sebagai Dilewati`);
-    }
-}
-// 3. Logika Tombol "Selesai"
-// Menutup tiket yang sedang dipanggil tanpa otomatis memanggil antrian berikutnya
-function selesaikanTiket(queueCode) {
-    const tickets = getTickets();
-    const currentlyCalled = tickets.find(t => (t.queueTypeCode === queueCode || t.number.startsWith(queueCode + '-')) &&
-        t.status === 'Dipanggil');
-    if (currentlyCalled) {
-        currentlyCalled.status = 'Selesai';
-        currentlyCalled.completedAt = Date.now();
-        saveTickets(tickets);
-        renderCards();
-        showToast(`Nomor ${currentlyCalled.number} telah diselesaikan`);
-    }
-}
-// Reset data ke contoh default modul
-if (btnResetData) {
-    btnResetData.addEventListener('click', () => {
-        if (confirm('Kembalikan antrian ke contoh modul praktikum?')) {
-            const defaults = getDefaultTickets();
-            saveTickets(defaults);
+        // Ambil tiket antrian berikutnya dengan prioritas tertinggi
+        const waiting = waitingSorted(all.filter(t => t.typeCode === code && t.status === "waiting"));
+        if (waiting.length > 0) {
+            const next = waiting[0];
+            const target = all.find(t => t.id === next.id);
+            if (target) {
+                target.status = "called";
+                saveTickets(all);
+                renderCards();
+                speakCall(target.number, name);
+                showToast("Memanggil " + target.number + " (" + target.priority + ") ke " + name);
+            }
+        }
+        else {
+            saveTickets(all);
             renderCards();
-            showToast('Data antrian berhasil direset ke contoh modul');
+            showToast("Tidak ada tiket menunggu untuk " + name);
+        }
+    }
+    // 2. Tombol Lewati
+    function lewatiTiket(code) {
+        const all = getTickets();
+        const called = all.find(t => t.typeCode === code && t.status === "called");
+        if (called) {
+            called.status = "skipped";
+            saveTickets(all);
+            renderCards();
+            showToast("Tiket " + called.number + " dilewati.");
+            return;
+        }
+        const waiting = waitingSorted(all.filter(t => t.typeCode === code && t.status === "waiting"));
+        if (waiting.length > 0) {
+            const next = waiting[0];
+            const target = all.find(t => t.id === next.id);
+            if (target) {
+                target.status = "skipped";
+                saveTickets(all);
+                renderCards();
+                showToast("Tiket " + target.number + " dilewati.");
+            }
+        }
+    }
+    // 3. Tombol Selesai
+    function selesaikanTiket(code) {
+        const all = getTickets();
+        const called = all.find(t => t.typeCode === code && t.status === "called");
+        if (called) {
+            called.status = "done";
+            saveTickets(all);
+            renderCards();
+            showToast("Tiket " + called.number + " telah diselesaikan.");
+        }
+    }
+    // Tombol Reset Data Contoh
+    if (btnResetData) {
+        btnResetData.addEventListener("click", () => {
+            if (confirm("Reset antrian ke contoh modul praktikum?")) {
+                seedModuleDemoTickets();
+                renderCards();
+                showToast("Data antrian berhasil direset.");
+            }
+        });
+    }
+    // Modal Terbitkan Tiket Baru
+    function populateQueueSelect() {
+        if (!selectQueueType)
+            return;
+        const types = ensureModuleTypes().filter(t => t.active);
+        selectQueueType.innerHTML = "";
+        types.forEach(t => {
+            const opt = document.createElement("option");
+            opt.value = t.code;
+            opt.textContent = t.name + " (" + t.code + ")";
+            selectQueueType.appendChild(opt);
+        });
+    }
+    if (btnOpenModal && ticketModal) {
+        btnOpenModal.addEventListener("click", () => {
+            populateQueueSelect();
+            ticketModal.style.display = "flex";
+        });
+    }
+    function closeModal() {
+        if (ticketModal)
+            ticketModal.style.display = "none";
+    }
+    if (modalCloseBtn)
+        modalCloseBtn.addEventListener("click", closeModal);
+    if (modalCancelBtn)
+        modalCancelBtn.addEventListener("click", closeModal);
+    if (formNewTicket) {
+        formNewTicket.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const code = selectQueueType ? selectQueueType.value : "A";
+            const prio = (selectPriority ? selectPriority.value : "Normal");
+            const t = createTicket(code, prio);
+            closeModal();
+            renderCards();
+            showToast("Tiket " + t.number + " (" + prio + ") berhasil diterbitkan!");
+        });
+    }
+    // Real-time Storage Listener & Polling
+    window.addEventListener("storage", (e) => {
+        if (e.key === LS_TICKETS || e.key === LS_TYPES || e.key === "tickets" || e.key === "rs_tiket_antrian") {
+            renderCards();
         }
     });
-}
-// Modal Tambah Tiket Baru (Untuk simulasi antrian)
-function populateQueueSelect() {
-    if (!selectQueueType)
-        return;
-    const queueTypes = getQueueTypes().filter(q => q.active !== false);
-    selectQueueType.innerHTML = '';
-    queueTypes.forEach(q => {
-        const opt = document.createElement('option');
-        opt.value = q.code;
-        opt.textContent = `${q.name} (${q.code})`;
-        selectQueueType.appendChild(opt);
-    });
-}
-if (btnOpenModal && ticketModal) {
-    btnOpenModal.addEventListener('click', () => {
-        populateQueueSelect();
-        ticketModal.style.display = 'flex';
-    });
-}
-function closeModal() {
-    if (ticketModal)
-        ticketModal.style.display = 'none';
-}
-if (modalCloseBtn)
-    modalCloseBtn.addEventListener('click', closeModal);
-if (modalCancelBtn)
-    modalCancelBtn.addEventListener('click', closeModal);
-if (formNewTicket) {
-    formNewTicket.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const code = selectQueueType.value;
-        const priority = selectPriority.value;
-        const tickets = getTickets();
-        const queueTickets = tickets.filter(t => t.queueTypeCode === code || t.number.startsWith(code + '-'));
-        // Nomor urut berikutnya (3 digit format, misal: A-002)
-        const nextSeq = queueTickets.length + 1;
-        const paddedSeq = String(nextSeq).padStart(3, '0');
-        const ticketNumber = `${code}-${paddedSeq}`;
-        const newTicket = {
-            id: 't-' + Date.now(),
-            number: ticketNumber,
-            queueTypeCode: code,
-            priority: priority,
-            status: 'Menunggu',
-            createdAt: Date.now(),
-        };
-        tickets.push(newTicket);
-        saveTickets(tickets);
-        closeModal();
-        renderCards();
-        showToast(`Tiket ${ticketNumber} (${priority}) berhasil diterbitkan!`);
-    });
-}
-// Sinkronisasi Real-time Antar Tab (Local Storage Event & Polling)
-window.addEventListener('storage', (event) => {
-    if (event.key === 'tickets' || event.key === 'antrian' || event.key === 'queueTypes' || event.key === 'jenisAntrian') {
-        renderCards();
-    }
-});
-// Polling interval 2.5 detik untuk memastikan tampilan selalu mutakhir
-setInterval(() => {
+    setInterval(renderCards, 2500);
+    // Initial render
     renderCards();
-}, 2500);
-// Inisialisasi awal render
-renderCards();
+});
