@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   window.addEventListener("storage", function (e) {
-    if (e.key === LS_TICKETS || e.key === LS_TYPES) {
+    if (e.key === LS_TICKETS || e.key === LS_TYPES || e.key === "rs_tiket_antrian" || e.key === "rs_jenis_antrian" || e.key === null) {
       renderTypes();
       renderTickets();
       renderTypeOptions();

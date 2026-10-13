@@ -103,6 +103,8 @@ setInterval(perbaruiLayar, 2000);
 window.addEventListener("storage", event => {
     if (event.key === "rs_jenis_antrian" ||
         event.key === "rs_tiket_antrian" ||
+        event.key === "rs_tickets" ||
+        event.key === "rs_queue_types" ||
         event.key === null) {
         perbaruiLayar();
     }

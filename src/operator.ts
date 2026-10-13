@@ -351,7 +351,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Real-time Storage Listener & Polling
     window.addEventListener("storage", (e) => {
-        if (e.key === LS_TICKETS || e.key === LS_TYPES || e.key === "tickets" || e.key === "rs_tiket_antrian") {
+        if (e.key === LS_TICKETS || e.key === LS_TYPES || e.key === "tickets" || e.key === "rs_tiket_antrian" || e.key === "rs_jenis_antrian" || e.key === null) {
             renderCards();
         }
     });

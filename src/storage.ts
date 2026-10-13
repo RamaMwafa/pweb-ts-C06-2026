@@ -1,4 +1,3 @@
-
 import type {
   JenisAntrian,
   TiketAntrian,
@@ -63,26 +62,113 @@ function bacaJSON<T>(key: string, fallback: T): T {
 }
 
 export function ambilJenis(): JenisAntrian[] {
-  if (localStorage.getItem(STORAGE_JENIS) === null) {
-    localStorage.setItem(
-      STORAGE_JENIS,
-      JSON.stringify(AWAL)
-    );
-  }
+  let jenis = bacaJSON<JenisAntrian[]>(STORAGE_JENIS, []);
 
-  const jenis = bacaJSON<JenisAntrian[]>(
-    STORAGE_JENIS,
-    []
-  );
+  if (jenis.length === 0) {
+    // Periksa apakah rs_queue_types ada
+    const rawQueue = localStorage.getItem("rs_queue_types");
+    if (rawQueue) {
+      try {
+        const arr = JSON.parse(rawQueue);
+        if (Array.isArray(arr) && arr.length > 0) {
+          jenis = arr.map((q: any) => ({
+            id: q.name.toLowerCase().replace(/\s+/g, "-"),
+            kode: q.code,
+            nama: q.name,
+            aktif: q.active !== false
+          }));
+        }
+      } catch {}
+    }
+
+    if (jenis.length === 0) {
+      jenis = AWAL;
+    }
+
+    localStorage.setItem(STORAGE_JENIS, JSON.stringify(jenis));
+  } else {
+    // Sinkronkan jika ada jenis baru yang ditambahkan di Dashboard Admin (rs_queue_types)
+    const rawQueue = localStorage.getItem("rs_queue_types");
+    if (rawQueue) {
+      try {
+        const arr = JSON.parse(rawQueue);
+        if (Array.isArray(arr)) {
+          let updated = false;
+          arr.forEach((q: any) => {
+            const exists = jenis.find(j => j.kode.toUpperCase() === q.code.toUpperCase());
+            if (!exists) {
+              jenis.push({
+                id: q.name.toLowerCase().replace(/\s+/g, "-"),
+                kode: q.code,
+                nama: q.name,
+                aktif: q.active !== false
+              });
+              updated = true;
+            } else {
+              if (exists.aktif !== q.active) {
+                exists.aktif = q.active;
+                updated = true;
+              }
+            }
+          });
+          if (updated) {
+            localStorage.setItem(STORAGE_JENIS, JSON.stringify(jenis));
+          }
+        }
+      } catch {}
+    }
+  }
 
   return Array.isArray(jenis) ? jenis : [];
 }
 
 export function ambilTiket(): TiketAntrian[] {
-  const tiket = bacaJSON<TiketAntrian[]>(
-    STORAGE_TIKET,
-    []
-  );
+  let tiket = bacaJSON<TiketAntrian[]>(STORAGE_TIKET, []);
+
+  // Sinkronkan status tiket dari rs_tickets (yang diupdate oleh operator.html / admin)
+  const rawCommon = localStorage.getItem("rs_tickets");
+  if (rawCommon) {
+    try {
+      const commonTickets = JSON.parse(rawCommon);
+      if (Array.isArray(commonTickets)) {
+        let changed = false;
+        commonTickets.forEach((c: any) => {
+          const match = tiket.find(t => t.nomor === c.number || t.id === c.id);
+          let stIndo: any = "Menunggu";
+          if (c.status === "called") stIndo = "Dipanggil";
+          else if (c.status === "done") stIndo = "Selesai";
+          else if (c.status === "skipped") stIndo = "Dilewati";
+
+          if (match) {
+            if (match.status !== stIndo) {
+              match.status = stIndo;
+              if (stIndo === "Dipanggil" && !match.dipanggilPada) {
+                match.dipanggilPada = new Date().toISOString();
+              }
+              changed = true;
+            }
+          } else {
+            // Tiket dari common belum ada di tiket antrian
+            const jenis = ambilJenis().find(j => j.kode === c.typeCode);
+            tiket.push({
+              id: c.id,
+              jenisId: jenis ? jenis.id : c.typeCode.toLowerCase(),
+              nomor: c.number,
+              prioritas: c.priority,
+              status: stIndo,
+              dibuatPada: new Date(c.createdAt || Date.now()).toISOString(),
+              dipanggilPada: stIndo === "Dipanggil" ? new Date().toISOString() : undefined
+            });
+            changed = true;
+          }
+        });
+
+        if (changed) {
+          localStorage.setItem(STORAGE_TIKET, JSON.stringify(tiket));
+        }
+      }
+    } catch {}
+  }
 
   return Array.isArray(tiket) ? tiket : [];
 }
@@ -104,7 +190,7 @@ export function buatTiket(
   const tiket = ambilTiket();
 
   const terbesar = tiket
-    .filter(t => t.jenisId === jenisId)
+    .filter(t => t.jenisId === jenisId || t.nomor.startsWith(jenis.kode + "-"))
     .reduce((n, t) => {
       const angka = Number(
         t.nomor.split("-").pop()
@@ -126,10 +212,37 @@ export function buatTiket(
     dibuatPada: new Date().toISOString()
   };
 
+  const semuaTiket = [...tiket, baru];
   localStorage.setItem(
     STORAGE_TIKET,
-    JSON.stringify([...tiket, baru])
+    JSON.stringify(semuaTiket)
   );
+
+  // Sinkronkan ke rs_tickets agar langsung terbaca di operator.html & index.html
+  try {
+    const rawCommon = localStorage.getItem("rs_tickets");
+    let commonTickets: any[] = rawCommon ? JSON.parse(rawCommon) : [];
+    if (!Array.isArray(commonTickets)) commonTickets = [];
+
+    let p: any = "Normal";
+    if (prioritas === "VIP" || prioritas === "Disabilitas" || prioritas === "Lansia") {
+      p = prioritas;
+    }
+
+    commonTickets.push({
+      id: baru.id,
+      number: baru.nomor,
+      typeCode: jenis.kode,
+      priority: p,
+      status: "waiting",
+      seq: commonTickets.length + 1,
+      createdAt: Date.now()
+    });
+
+    localStorage.setItem("rs_tickets", JSON.stringify(commonTickets));
+  } catch (err) {
+    console.error("Gagal menyinkronkan rs_tickets:", err);
+  }
 
   return baru;
 }

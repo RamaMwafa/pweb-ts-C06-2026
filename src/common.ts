@@ -90,10 +90,15 @@ function logout(): void {
 }
 
 /* ---------- queue types ---------- */
+/* ---------- queue types ---------- */
 function defaultTypes(): QueueType[] {
   return [
-    { code: "A", name: "Poli Umum", active: true },
-    { code: "B", name: "Poli Gigi", active: true },
+    { code: "A", name: "UMUM-1", active: true },
+    { code: "B", name: "UMUM-2", active: true },
+    { code: "C", name: "UMUM-3", active: true },
+    { code: "G", name: "GIGI", active: true },
+    { code: "F", name: "FARMASI", active: true },
+    { code: "P", name: "PSIKOLOG", active: true },
   ];
 }
 
@@ -101,12 +106,26 @@ function getTypes(): QueueType[] {
   try {
     const raw = localStorage.getItem(LS_TYPES);
     if (!raw) {
+      // Periksa apakah rs_jenis_antrian ada
+      const rawJenis = localStorage.getItem("rs_jenis_antrian");
+      if (rawJenis) {
+        const arrJenis = JSON.parse(rawJenis);
+        if (Array.isArray(arrJenis) && arrJenis.length > 0) {
+          const mapped = arrJenis.map((j: any) => ({
+            code: j.kode,
+            name: j.nama,
+            active: j.aktif !== false
+          }));
+          localStorage.setItem(LS_TYPES, JSON.stringify(mapped));
+          return mapped;
+        }
+      }
       const d = defaultTypes();
-      localStorage.setItem(LS_TYPES, JSON.stringify(d));
+      saveTypes(d);
       return d;
     }
     const arr = JSON.parse(raw) as QueueType[];
-    return Array.isArray(arr) ? arr : defaultTypes();
+    return Array.isArray(arr) && arr.length > 0 ? arr : defaultTypes();
   } catch {
     return defaultTypes();
   }
@@ -114,15 +133,53 @@ function getTypes(): QueueType[] {
 
 function saveTypes(t: QueueType[]): void {
   localStorage.setItem(LS_TYPES, JSON.stringify(t));
+  // Sinkronisasi otomatis ke rs_jenis_antrian
+  const jenisFormat = t.map(q => ({
+    id: q.name.toLowerCase().replace(/\s+/g, "-"),
+    kode: q.code,
+    nama: q.name,
+    aktif: q.active
+  }));
+  localStorage.setItem("rs_jenis_antrian", JSON.stringify(jenisFormat));
 }
 
 /* ---------- tickets ---------- */
 function getTickets(): Ticket[] {
   try {
+    let tickets: Ticket[] = [];
     const raw = localStorage.getItem(LS_TICKETS);
-    if (!raw) return [];
-    const arr = JSON.parse(raw) as Ticket[];
-    return Array.isArray(arr) ? arr : [];
+    if (raw) {
+      tickets = JSON.parse(raw) as Ticket[];
+      if (!Array.isArray(tickets)) tickets = [];
+    }
+
+    // Periksa apakah ada tiket baru dari rs_tiket_antrian (mis. dibuat di ambil-antrian.html)
+    const rawTiketAntrian = localStorage.getItem("rs_tiket_antrian");
+    if (rawTiketAntrian) {
+      const arr = JSON.parse(rawTiketAntrian);
+      if (Array.isArray(arr)) {
+        arr.forEach((ta: any) => {
+          const exists = tickets.find(t => t.number === ta.nomor || t.id === ta.id);
+          if (!exists) {
+            let st: TicketStatus = "waiting";
+            if (ta.status === "Dipanggil") st = "called";
+            else if (ta.status === "Selesai") st = "done";
+            else if (ta.status === "Dilewati") st = "skipped";
+
+            tickets.push({
+              id: ta.id,
+              number: ta.nomor,
+              typeCode: ta.nomor ? ta.nomor.split("-")[0] : "A",
+              priority: (ta.prioritas === "VIP" || ta.prioritas === "Disabilitas" || ta.prioritas === "Lansia") ? ta.prioritas : "Normal",
+              status: st,
+              seq: tickets.length + 1,
+              createdAt: ta.dibuatPada ? new Date(ta.dibuatPada).getTime() : Date.now()
+            });
+          }
+        });
+      }
+    }
+    return tickets;
   } catch {
     return [];
   }
@@ -130,6 +187,25 @@ function getTickets(): Ticket[] {
 
 function saveTickets(t: Ticket[]): void {
   localStorage.setItem(LS_TICKETS, JSON.stringify(t));
+
+  // Sinkronisasi otomatis ke format rs_tiket_antrian (untuk layar.html & ambil-antrian.html)
+  const tiketFormat = t.map(tik => {
+    let statusIndo = "Menunggu";
+    if (tik.status === "called") statusIndo = "Dipanggil";
+    else if (tik.status === "done") statusIndo = "Selesai";
+    else if (tik.status === "skipped") statusIndo = "Dilewati";
+
+    return {
+      id: tik.id,
+      jenisId: tik.typeCode.toLowerCase(),
+      nomor: tik.number,
+      prioritas: tik.priority,
+      status: statusIndo,
+      dibuatPada: new Date(tik.createdAt || Date.now()).toISOString(),
+      dipanggilPada: tik.status === "called" ? new Date().toISOString() : undefined
+    };
+  });
+  localStorage.setItem("rs_tiket_antrian", JSON.stringify(tiketFormat));
 }
 
 function getCounters(): Record<string, number> {
@@ -198,6 +274,7 @@ function resetQueue(): void {
   localStorage.removeItem(LS_TICKETS);
   localStorage.removeItem(LS_COUNTERS);
   localStorage.removeItem(LS_SEQ);
+  localStorage.removeItem("rs_tiket_antrian");
 }
 
 /* ---------- small dom helper ---------- */
