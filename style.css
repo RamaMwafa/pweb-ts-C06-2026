@@ -3,6 +3,10 @@
    Menggabungkan seluruh styling Login dan Panel Operator
    ========================================================================== */
 
+/* Style layar antrean dari css/style.css (stylesheet GitHub) ikut digabung
+   melalui satu entry point agar semua halaman memakai style.css lokal. */
+@import url("css/style.css");
+
 :root {
     --primary-color: #ea580c;
     --primary-hover: #c2410c;

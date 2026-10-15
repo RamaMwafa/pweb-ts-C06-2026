@@ -173,6 +173,15 @@ export function ambilTiket(): TiketAntrian[] {
   return Array.isArray(tiket) ? tiket : [];
 }
 
+/**
+ * Mengambil kode layanan dari nomor tiket, misalnya A-001 -> A.
+ * Tiket lama dari modul operator memakai kode ini sebagai jenisId,
+ * sedangkan tiket dari halaman publik memakai ID layanan (umum-1).
+ */
+export function kodeJenisTiket(tiket: TiketAntrian): string {
+  return tiket.nomor.split("-")[0].toUpperCase();
+}
+
 export function buatTiket(
   jenisId: string,
   prioritas: Prioritas

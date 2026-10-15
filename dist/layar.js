@@ -1,11 +1,12 @@
-import { ambilJenis, ambilTiket } from "./storage.js";
+import { ambilJenis, ambilTiket, kodeJenisTiket } from "./storage.js";
 // ELEMEN HTML
 const wadah = document.querySelector("#kartu-layar");
 const waktuUpdate = document.querySelector("#waktu-update");
 // MEMBUAT KARTU LAYANAN
 function buatKartu(jenis, semuaTiket) {
     // Mengambil tiket berdasarkan jenis layanan
-    const tiketLayanan = semuaTiket.filter(tiket => tiket.jenisId === jenis.id);
+    const tiketLayanan = semuaTiket.filter(tiket => tiket.jenisId === jenis.id ||
+        kodeJenisTiket(tiket) === jenis.kode.toUpperCase());
     // Mengambil nomor yang sedang dipanggil
     const dipanggil = tiketLayanan
         .filter(tiket => tiket.status === "Dipanggil")

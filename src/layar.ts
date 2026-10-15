@@ -1,7 +1,8 @@
 
 import {
   ambilJenis,
-  ambilTiket
+  ambilTiket,
+  kodeJenisTiket
 } from "./storage.js";
 
 import type {
@@ -28,7 +29,9 @@ function buatKartu(
 
   // Mengambil tiket berdasarkan jenis layanan
   const tiketLayanan = semuaTiket.filter(
-    tiket => tiket.jenisId === jenis.id
+    tiket =>
+      tiket.jenisId === jenis.id ||
+      kodeJenisTiket(tiket) === jenis.kode.toUpperCase()
   );
 
   // Mengambil nomor yang sedang dipanggil
